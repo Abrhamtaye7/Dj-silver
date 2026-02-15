@@ -1,0 +1,49 @@
+{
+  "project_name": "DJ Silver Web System",
+  "version": "1.0",
+  "stack": {
+    "frontend": "React",
+    "backend": "Node/Express",
+    "database": "MongoDB",
+    "styling": "TailwindCSS",
+    "storage": "Local Filesystem"
+  },
+  "branding": {
+    "colors": {
+      "background": "#0A0A0A",
+      "primary": "#C0C0C0",
+      "accent": "#00FFFF"
+    },
+    "vibes": ["Sleek", "Premium", "Industrial", "Glitch"]
+  },
+  "features": {
+    "admin_auth": {
+      "type": "Single-Account",
+      "mechanism": "JWT",
+      "credentials": "ENV_VARS"
+    },
+    "fan_page": {
+      "layout": "Masonry",
+      "user_type": "Guest",
+      "requirements": ["Name"],
+      "interactions": ["Post Text", "Upload Image", "Comment", "Like"]
+    },
+    "booking_system": {
+      "type": "Multi-Step Wizard",
+      "steps": 3,
+      "fields": ["Name", "Email", "Event Type", "Date", "Budget"]
+    }
+  },
+  "api_endpoints": [
+    { "path": "/api/auth/login", "method": "POST", "auth": false },
+    { "path": "/api/bookings", "method": "POST", "auth": false, "rate_limit": "high" },
+    { "path": "/api/fans/posts", "method": "GET", "auth": false },
+    { "path": "/api/fans/posts", "method": "POST", "auth": false, "upload": true },
+    { "path": "/api/admin/delete-post/:id", "method": "DELETE", "auth": true }
+  ],
+  "deployment": {
+    "os": "Ubuntu",
+    "proxy": "Nginx",
+    "process_manager": "PM2"
+  }
+}
