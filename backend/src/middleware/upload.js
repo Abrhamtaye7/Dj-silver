@@ -1,9 +1,10 @@
 const path = require("path");
 const multer = require("multer");
+const { isCloudinaryEnabled } = require("../utils/cloudinary");
 
 const uploadDir = path.join(__dirname, "..", "..", "..", "uploads", "fans");
 
-const storage = multer.diskStorage({
+const diskStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
   },
@@ -15,6 +16,8 @@ const storage = multer.diskStorage({
   },
 });
 
+const memoryStorage = multer.memoryStorage();
+
 const fileFilter = (req, file, cb) => {
   const allowed = ["image/jpeg", "image/png", "image/webp"];
   if (!allowed.includes(file.mimetype)) {
@@ -25,7 +28,7 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({
-  storage,
+  storage: isCloudinaryEnabled ? memoryStorage : diskStorage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter,
 });

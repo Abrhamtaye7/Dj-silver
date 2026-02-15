@@ -8,11 +8,21 @@ router.post("/login", (req, res) => {
   const adminEmail = process.env.ADMIN_EMAIL;
   const adminPassword = process.env.ADMIN_PASSWORD;
 
+  const normalize = (value) => (value || "").toString().trim();
+  const inputEmail = normalize(email).toLowerCase();
+  const inputPassword = normalize(password);
+  const storedEmail = normalize(adminEmail).toLowerCase();
+  const storedPassword = normalize(adminPassword);
+
   if (!adminEmail || !adminPassword || !process.env.JWT_SECRET) {
     return res.status(500).json({ message: "Auth not configured" });
   }
 
-  if (email !== adminEmail || password !== adminPassword) {
+  if (!inputEmail || !inputPassword) {
+    return res.status(400).json({ message: "Email and password are required" });
+  }
+
+  if (inputEmail !== storedEmail || inputPassword !== storedPassword) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 

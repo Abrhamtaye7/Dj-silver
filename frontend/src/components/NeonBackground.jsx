@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const slides = [
   "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=2000",
@@ -6,34 +6,95 @@ const slides = [
   "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80&w=2000",
 ];
 
+class HexLine {
+  constructor(deps) {
+    this.deps = deps;
+    this.reset();
+  }
+
+  reset() {
+    const { opts, getTick } = this.deps;
+    this.x = 0;
+    this.y = 0;
+    this.addedX = 0;
+    this.addedY = 0;
+    this.rad = 0;
+    this.color = `hsl(${getTick() * opts.hueChange}, 80%, 50%)`;
+    this.beginPhase();
+  }
+
+  beginPhase() {
+    const { opts, getBounds } = this.deps;
+
+    this.x += this.addedX;
+    this.y += this.addedY;
+    this.time = 0;
+    this.targetTime = (opts.baseTime + opts.addedTime * Math.random()) | 0;
+    this.rad += (Math.PI / 3) * (Math.random() < 0.5 ? 1 : -1);
+    this.addedX = Math.cos(this.rad);
+    this.addedY = Math.sin(this.rad);
+
+    const { width, height } = getBounds();
+
+    if (
+      Math.random() < opts.dieChance ||
+      this.x > width / 40 ||
+      this.x < -width / 40 ||
+      this.y > height / 40 ||
+      this.y < -height / 40
+    ) {
+      this.reset();
+    }
+  }
+
+  step() {
+    const { ctx, opts } = this.deps;
+
+    this.time += 1;
+    if (this.time >= this.targetTime) this.beginPhase();
+
+    const prop = this.time / this.targetTime;
+    const wave = Math.sin((prop * Math.PI) / 2);
+    const x = this.addedX * wave;
+    const y = this.addedY * wave;
+
+    ctx.shadowBlur = prop * 6;
+    ctx.fillStyle = ctx.shadowColor = this.color;
+    ctx.fillRect(opts.cx + (this.x + x) * opts.len, opts.cy + (this.y + y) * opts.len, 2, 2);
+  }
+}
+
 function NeonBackground() {
   const bgCanvasRef = useRef(null);
   const [activeSlide, setActiveSlide] = useState(0);
-  const animationRefs = useMemo(() => ({ bg: null, slideshow: null }), []);
+  const animationRefs = useRef({ bg: null, slideshow: null });
 
   useEffect(() => {
-    animationRefs.slideshow = setInterval(() => {
+    const refs = animationRefs.current;
+    refs.slideshow = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % slides.length);
     }, 5000);
 
     return () => {
-      if (animationRefs.slideshow) {
-        clearInterval(animationRefs.slideshow);
+      if (refs.slideshow) {
+        clearInterval(refs.slideshow);
       }
     };
-  }, [animationRefs]);
+  }, []);
 
   useEffect(() => {
     const canvas = bgCanvasRef.current;
     if (!canvas) return;
+    const refs = animationRefs.current;
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     let width = 0;
     let height = 0;
     let tick = 0;
-    const hexLines = [];
 
+    const hexLines = [];
     const opts = {
       len: 25,
       count: 40,
@@ -45,57 +106,8 @@ function NeonBackground() {
       cy: 0,
     };
 
-    class Line {
-      constructor() {
-        this.reset();
-      }
-
-      reset() {
-        this.x = 0;
-        this.y = 0;
-        this.addedX = 0;
-        this.addedY = 0;
-        this.rad = 0;
-        this.color = `hsl(${tick * opts.hueChange}, 80%, 50%)`;
-        this.beginPhase();
-      }
-
-      beginPhase() {
-        this.x += this.addedX;
-        this.y += this.addedY;
-        this.time = 0;
-        this.targetTime = (opts.baseTime + opts.addedTime * Math.random()) | 0;
-        this.rad += Math.PI / 3 * (Math.random() < 0.5 ? 1 : -1);
-        this.addedX = Math.cos(this.rad);
-        this.addedY = Math.sin(this.rad);
-        if (
-          Math.random() < opts.dieChance ||
-          this.x > width / 40 ||
-          this.x < -width / 40 ||
-          this.y > height / 40 ||
-          this.y < -height / 40
-        ) {
-          this.reset();
-        }
-      }
-
-      step() {
-        this.time += 1;
-        if (this.time >= this.targetTime) this.beginPhase();
-        const prop = this.time / this.targetTime;
-        const wave = Math.sin((prop * Math.PI) / 2);
-        const x = this.addedX * wave;
-        const y = this.addedY * wave;
-        ctx.shadowBlur = prop * 6;
-        ctx.fillStyle = ctx.shadowColor = this.color;
-        ctx.fillRect(
-          opts.cx + (this.x + x) * opts.len,
-          opts.cy + (this.y + y) * opts.len,
-          2,
-          2
-        );
-      }
-    }
+    const getBounds = () => ({ width, height });
+    const getTick = () => tick;
 
     const resize = () => {
       width = canvas.width = window.innerWidth;
@@ -112,22 +124,25 @@ function NeonBackground() {
       ctx.fillStyle = "rgba(0,0,0,0.08)";
       ctx.fillRect(0, 0, width, height);
       ctx.globalCompositeOperation = "lighter";
+
       hexLines.forEach((line) => line.step());
-      animationRefs.bg = requestAnimationFrame(animate);
+      refs.bg = requestAnimationFrame(animate);
     };
 
     resize();
+
     for (let i = 0; i < opts.count; i += 1) {
-      hexLines.push(new Line());
+      hexLines.push(new HexLine({ ctx, opts, getTick, getBounds }));
     }
+
     animate();
 
     window.addEventListener("resize", resize);
     return () => {
-      if (animationRefs.bg) cancelAnimationFrame(animationRefs.bg);
+      if (refs.bg) cancelAnimationFrame(refs.bg);
       window.removeEventListener("resize", resize);
     };
-  }, [animationRefs]);
+  }, []);
 
   return (
     <>

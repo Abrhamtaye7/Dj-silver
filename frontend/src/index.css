@@ -267,3 +267,26 @@ h2 {
     radial-gradient(circle at 85% 90%, rgba(188, 19, 254, 0.14), transparent 45%),
     rgba(2, 6, 23, 0.62);
 }
+
+.promo-shot {
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(2, 6, 23, 0.5);
+}
+
+.promo-shot img {
+  transition: transform 0.5s ease;
+}
+
+.promo-shot:hover img {
+  transform: scale(1.04);
+}
+
+.promo-shot-lg {
+  min-height: 22rem;
+}
+
+.promo-shot-sm {
+  min-height: 10.5rem;
+}

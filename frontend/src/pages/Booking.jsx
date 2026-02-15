@@ -19,29 +19,37 @@ function Booking() {
   const [form, setForm] = useState(initialForm);
   const [status, setStatus] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [referenceId, setReferenceId] = useState("");
+
+  const minEventDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const trimmedName = form.clientName.trim();
+  const trimmedEmail = form.email.trim();
+  const validName = trimmedName.length >= 2;
+  const validEmail = emailRegex.test(trimmedEmail);
+  const validEventDate = Boolean(form.eventDate) && form.eventDate >= minEventDate;
 
   const handleChange = (field) => (event) => {
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
     setErrorMessage("");
-    if (status !== "idle") setStatus("idle");
+    if (status !== "idle") {
+      setStatus("idle");
+      setReferenceId("");
+    }
   };
 
   const stepValid = useMemo(() => {
     if (stepIndex === 0) {
-      return form.clientName.trim().length >= 2 && emailRegex.test(form.email.trim());
+      return validName && validEmail;
     }
 
     if (stepIndex === 1) {
-      return Boolean(form.eventDate);
+      return validEventDate;
     }
 
     return true;
-  }, [form, stepIndex]);
+  }, [stepIndex, validEmail, validEventDate, validName]);
 
-  const overallValid =
-    form.clientName.trim().length >= 2 &&
-    emailRegex.test(form.email.trim()) &&
-    Boolean(form.eventDate);
+  const overallValid = validName && validEmail && validEventDate;
 
   const handleNext = () => {
     if (!stepValid) {
@@ -67,20 +75,24 @@ function Booking() {
     setErrorMessage("");
 
     try {
-      await api.post("/api/bookings", {
+      const response = await api.post("/api/bookings", {
         ...form,
-        clientName: form.clientName.trim(),
-        email: form.email.trim(),
+        clientName: trimmedName,
+        email: trimmedEmail,
         budgetRange: form.budgetRange.trim(),
         message: form.message.trim(),
       });
 
       setStatus("success");
+      setReferenceId(response.data?.bookingId || "");
       setForm(initialForm);
       setStepIndex(0);
-    } catch {
+    } catch (error) {
       setStatus("error");
-      setErrorMessage("Could not submit. Please try again later.");
+      setReferenceId("");
+      setErrorMessage(
+        error.response?.data?.message || "Could not submit. Please try again later."
+      );
     }
   };
 
@@ -117,6 +129,11 @@ function Booking() {
                 className="rounded-lg border border-white/10 bg-black/40 px-4 py-2 text-sm normal-case tracking-normal text-slate-100"
                 placeholder="Full name"
               />
+              {!validName && errorMessage && (
+                <span className="text-[10px] tracking-[0.15em] text-rose-300">
+                  Enter at least 2 characters.
+                </span>
+              )}
             </label>
 
             <label className="grid gap-1 text-xs uppercase tracking-[0.2em] text-slate-400">
@@ -128,6 +145,11 @@ function Booking() {
                 className="rounded-lg border border-white/10 bg-black/40 px-4 py-2 text-sm normal-case tracking-normal text-slate-100"
                 placeholder="Email address"
               />
+              {!validEmail && errorMessage && (
+                <span className="text-[10px] tracking-[0.15em] text-rose-300">
+                  Enter a valid email address.
+                </span>
+              )}
             </label>
           </div>
         )}
@@ -155,8 +177,14 @@ function Booking() {
                 value={form.eventDate}
                 onChange={handleChange("eventDate")}
                 type="date"
+                min={minEventDate}
                 className="rounded-lg border border-white/10 bg-black/40 px-4 py-2 text-sm normal-case tracking-normal text-slate-100"
               />
+              {!validEventDate && errorMessage && (
+                <span className="text-[10px] tracking-[0.15em] text-rose-300">
+                  Select a valid date from today onward.
+                </span>
+              )}
             </label>
 
             <label className="grid gap-1 text-xs uppercase tracking-[0.2em] text-slate-400">
@@ -228,6 +256,11 @@ function Booking() {
         {status === "success" && (
           <p className="mt-4 text-xs text-emerald-300">
             Booking submitted. We will reach out shortly.
+          </p>
+        )}
+        {status === "success" && referenceId && (
+          <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-cyan-300">
+            Reference ID: {referenceId}
           </p>
         )}
       </div>

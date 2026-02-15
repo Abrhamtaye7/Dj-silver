@@ -12,4 +12,10 @@ const fanPostLimiter = rateLimit({
   message: { message: "Too many posts. Try again later." },
 });
 
-module.exports = { bookingLimiter, fanPostLimiter };
+const merchOrderLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { message: "Too many merch order attempts. Try again later." },
+});
+
+module.exports = { bookingLimiter, fanPostLimiter, merchOrderLimiter };

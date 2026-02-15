@@ -3,6 +3,10 @@ const FanPost = require("../models/FanPost");
 const Comment = require("../models/Comment");
 const upload = require("../middleware/upload");
 const { fanPostLimiter } = require("../middleware/rateLimit");
+const {
+  isCloudinaryEnabled,
+  uploadImageBuffer,
+} = require("../utils/cloudinary");
 
 const router = express.Router();
 
@@ -21,9 +25,23 @@ router.get("/", async (req, res) => {
 
 router.post("/", fanPostLimiter, upload.single("image"), async (req, res) => {
   try {
-    const imagePath = req.file
-      ? `/uploads/fans/${req.file.filename}`
-      : null;
+    let imagePath = null;
+
+    if (req.file) {
+      if (isCloudinaryEnabled) {
+        const baseName = req.file.originalname
+          ? req.file.originalname.replace(/\.[^/.]+$/, "")
+          : "fan-upload";
+        const safeBase = baseName.replace(/\s+/g, "-").toLowerCase();
+        const uploadResult = await uploadImageBuffer(
+          req.file.buffer,
+          `${safeBase}-${Date.now()}`
+        );
+        imagePath = uploadResult.secure_url;
+      } else if (req.file.filename) {
+        imagePath = `/uploads/fans/${req.file.filename}`;
+      }
+    }
 
     const post = await FanPost.create({
       authorName: req.body.authorName,

@@ -11,6 +11,7 @@ import Contact from "./pages/Contact.jsx";
 import Music from "./pages/Music.jsx";
 import Media from "./pages/Media.jsx";
 import Community from "./pages/Community.jsx";
+import AdminMerch from "./pages/AdminMerch.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
 function App() {
@@ -30,6 +31,8 @@ function App() {
             <Route path="/music" element={<Music />} />
             <Route path="/media" element={<Media />} />
             <Route path="/community" element={<Community />} />
+            <Route path="/admin" element={<AdminMerch />} />
+            <Route path="/admin/merch" element={<AdminMerch />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
